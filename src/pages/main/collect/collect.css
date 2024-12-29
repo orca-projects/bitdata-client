@@ -26,15 +26,3 @@ main .status.fail {
 main .notice {
     color: #7B7B7B;
 }
-
-/* 테스트 */
-.test {
-    position: fixed;
-    top: 0; right: 0;
-    
-    display: flex;
-    flex-direction: column;
-}
-.test button {
-    padding: 10px;
-}

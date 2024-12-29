@@ -1,32 +1,45 @@
 import './collect.css';
 
-const $statusImage = document.querySelector('.status-image');
-const $statusText = document.querySelector('.status');
-const $noticeText = document.querySelector('.notice');
+const collectHistory = async function () {
+    try {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
+        const response = await fetch('/collect/history', {
+            method: 'GET',
+        });
 
-function collectionSusccess() { // 데이터 수집 성공시 
+        if (response.ok) {
+            collectionSusccess();
+        } else {
+            collectionFail();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An unexpected error occurred. Please try again.');
+    }
+};
+
+const collectionSusccess = function () {
     window.location.href = '/history';
-}
+};
 
-function collectionFail() { // 데이터 수집 실패시
-    console.log('데이터 수집 실패');
+const collectionFail = async function () {
+    const $statusImage = document.querySelector('.status-image');
+    const $statusText = document.querySelector('.status');
+    const $noticeText = document.querySelector('.notice');
 
-    // 상태 변경에 따른 이미지 및 문구 변경
     $statusImage.innerHTML = `<img src="/assets/images/notice_icon.png" alt="경고 표시">`;
+
     $statusText.innerHTML = `데이터 수집 불가`;
     $statusText.classList.add('fail');
+
     $noticeText.innerHTML = `바이낸스 계정 연동 상태를 확인해주세요!`;
 
-    setTimeout(() => { // 5초 뒤 설정화면으로 이동
-        window.location.href = '/setting';
-    }, 5000);
-}
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
+    window.location.href = '/setting';
+};
 
-// 테스트 코드
-const $successBtn = document.querySelector('.success');
-const $failBtn = document.querySelector('.fail'); 
-
-$successBtn.addEventListener('click', collectionSusccess);
-$failBtn.addEventListener('click', collectionFail);
+document.addEventListener('DOMContentLoaded', () => {
+    collectHistory();
+});

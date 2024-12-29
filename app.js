@@ -1,56 +1,58 @@
-import express from "express";
-import session from "express-session";
-import path from "path";
-import axios from "axios";
-import { fileURLToPath } from "url";
+import express from 'express';
+import session from 'express-session';
+import path from 'path';
+import axios from 'axios';
+import { fileURLToPath } from 'url';
+import { fail } from 'assert';
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const SERVER_URL = "http://localhost:1234";
+const SERVER_URL = 'http://localhost:8080';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.static(path.join(__dirname, "dist")));
+app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.json()); // 항상 라우트 전에 선언
 app.use(
     session({
-        secret: "my_secret_key",
+        secret: 'my_secret_key',
         resave: false,
         saveUninitialized: true,
         cookie: { secure: false },
     })
 );
 
-app.get("/login/kakao", async (req, res) => {
+app.get('/login/kakao', async (req, res) => {
     try {
         const response = await new RequestSender()
             .setUrl(`${SERVER_URL}/auths/login/kakao/`)
-            .setMethod("GET")
+            .setMethod('GET')
             .send();
 
         return res.redirect(response.loginUrl);
     } catch (error) {
-        return res.status(500).send(error);
+        const errorMessage = error.message || 'Internal Server Error';
+        return res.status(500).send(errorMessage);
     }
 });
 
-app.get("/login/kakao/auths/callback", async (req, res) => {
+app.get('/login/kakao/auths/callback', async (req, res) => {
     const request = req.query;
     const code = request.code;
     const state = request.state;
 
     if (!code) {
-        return res.status(400).send("Authorization code is missing");
+        return res.status(400).send('Authorization code is missing');
     } else if (!state) {
-        return res.status(400).send("Authorization state is missing");
+        return res.status(400).send('Authorization state is missing');
     }
 
     try {
         const response = await new RequestSender()
             .setUrl(`${SERVER_URL}/auths/login/kakao/callback/`)
-            .setMethod("POST")
+            .setMethod('POST')
             .setData({
                 code,
                 state,
@@ -62,57 +64,59 @@ app.get("/login/kakao/auths/callback", async (req, res) => {
         const redirectUrl = getRedirectByMemberState(response);
         return res.redirect(redirectUrl);
     } catch (error) {
-        return res.status(500).send(error);
+        const errorMessage = error.message || 'Internal Server Error';
+        return res.status(500).send(errorMessage);
     }
 });
 
 function getRedirectByMemberState(response) {
     if (!response.isMember) {
         // 비회원
-        return "/join";
+        return '/join';
     }
     if (!response.hasBinanceKey) {
         // 회원 > 바이낸스 키 없음
-        return "/onboarding";
+        return '/onboarding';
     }
     if (response.hasBinanceKey) {
         // 회원 > 바이낸스 키 있음
-        return "/collect";
+        return '/collect';
     }
 
-    throw new Error("Unexpected member state in response");
+    throw new Error('Unexpected member state in response');
 }
 
-app.get("/join/kakao", async (req, res) => {
+app.get('/join/kakao', async (req, res) => {
     try {
         const response = await new RequestSender()
             .setUrl(`${SERVER_URL}/auths/login/kakao/consent/`)
-            .setMethod("POST")
+            .setMethod('POST')
             .setSessionKey(getSessionKey(req))
             .send();
 
-        return res.redirect("/onboarding");
+        return res.redirect('/onboarding');
     } catch (error) {
-        return res.status(500).send(error.message || "Internal Server Error");
+        const errorMessage = error.message || 'Internal Server Error';
+        return res.status(500).send(errorMessage);
     }
 });
 
-app.post("/onboarding/keys/save", async (req, res) => {
+app.post('/onboarding/keys/save', async (req, res) => {
     const apiKey = req.body.apiKey;
     const secretKey = req.body.secretKey;
 
     if (!apiKey) {
-        return res.status(500).send("API key is null");
+        return res.status(500).send('API key is null');
     }
 
     if (!secretKey) {
-        return res.status(500).send("Secret key is null");
+        return res.status(500).send('Secret key is null');
     }
 
     try {
         const response = await new RequestSender()
-            .setUrl(`${SERVER_URL}/auths/onboarding/keys/save/`) // URL 설정 추가
-            .setMethod("POST")
+            .setUrl(`${SERVER_URL}/auths/onboarding/keys/save/`)
+            .setMethod('POST')
             .setSessionKey(getSessionKey(req))
             .setData({
                 apiKey: apiKey,
@@ -120,15 +124,32 @@ app.post("/onboarding/keys/save", async (req, res) => {
             })
             .send();
 
-        return res.redirect("/collect");
+        return res.redirect('/collect');
     } catch (error) {
-        return res.status(500).send(error.message || "Internal Server Error");
+        const errorMessage = error.message || 'Internal Server Error';
+        return res.status(500).send(errorMessage);
     }
 });
 
-app.get("/*", (req, res) => {
-    const fileName = req.params[0] ? req.params[0] : "index";
-    res.sendFile(path.join(__dirname, "dist", `${fileName}.html`));
+app.get('/collect/history', async (req, res) => {
+    try {
+        const response = await new RequestSender()
+            .setUrl(`${SERVER_URL}/collect/history`)
+            .setMethod('GET')
+            .setSessionKey(getSessionKey(req))
+            .send();
+
+        res.ok = response.ok;
+        return res;
+    } catch (error) {
+        const errorMessage = error.message || 'Internal Server Error';
+        return res.status(500).send(errorMessage);
+    }
+});
+
+app.get('/*', (req, res) => {
+    const fileName = req.params[0] ? req.params[0] : 'index';
+    res.sendFile(path.join(__dirname, 'dist', `${fileName}.html`));
 });
 
 app.listen(PORT, () => {
@@ -139,10 +160,10 @@ app.listen(PORT, () => {
 // common js
 class RequestSender {
     constructor() {
-        this.url = "";
-        this.method = "";
+        this.url = '';
+        this.method = '';
         this.headers = {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
         };
         this.data = null;
         this.sessionKey = null;
@@ -179,7 +200,8 @@ class RequestSender {
                 ? { ...this.data, session_key: this.sessionKey }
                 : this.data;
 
-            const convertedData = requestData && convertJson(requestData, "camelToSnake");
+            const convertedData =
+                requestData && convertJson(requestData, 'camelToSnake');
 
             const response = await axios({
                 url: this.url,
@@ -188,12 +210,12 @@ class RequestSender {
                 data: convertedData,
             });
 
-            return convertJson(response.data, "snakeToCamel");
+            return convertJson(response.data, 'snakeToCamel');
         } catch (error) {
             throw new Error(
                 error.response?.data?.message ||
                     error.message ||
-                    "Request failed"
+                    'Request failed'
             );
         }
     }
@@ -203,7 +225,7 @@ function getSessionKey(req) {
     const sessionKey = req.session?.sessionKey;
 
     if (!sessionKey) {
-        throw new Error("Session is missing");
+        throw new Error('Session is missing');
     }
 
     return sessionKey;
@@ -214,12 +236,12 @@ function convertSnakeToCamel(str) {
 }
 
 function convertCamelToSnake(str) {
-    return str.replace(/([A-Z])/g, (match) => "_" + match.toLowerCase());
+    return str.replace(/([A-Z])/g, (match) => '_' + match.toLowerCase());
 }
 
 function convertJson(json, type) {
-    if (typeof json !== "object" || json === null) {
-        throw new Error("Input must be a non-null object");
+    if (typeof json !== 'object' || json === null) {
+        throw new Error('Input must be a non-null object');
     }
 
     const types = {
@@ -231,7 +253,7 @@ function convertJson(json, type) {
         throw new Error(
             `Invalid type: "${type}". Supported types are: ${Object.keys(
                 types
-            ).join(", ")}`
+            ).join(', ')}`
         );
     }
 
@@ -247,7 +269,7 @@ function convertJson(json, type) {
             const newKey = convertKey(key);
             const value = json[key];
 
-            if (typeof value === "object" && value !== null) {
+            if (typeof value === 'object' && value !== null) {
                 converted[newKey] = convertJson(value, type);
             } else {
                 converted[newKey] = value;
