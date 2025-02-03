@@ -1,0 +1,48 @@
+@import "@/styles/reset.css";
+
+/* font */
+body {
+    font-family: 'NotoSansKR', sans-serif;
+}
+
+/* h* style */
+h1, h2, h3 { font-weight: 700; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1rem; }
+
+/* input style */
+input {
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid #d8d8d8; border-radius: 10px;
+}
+input:focus {
+    outline: 1px solid #0C8CE9;
+}
+
+/* a style */
+a,
+a:link,
+a:visited {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* button style */
+button {
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+/* textarea style */
+textarea {
+    padding: 10px;
+    border: 1px solid #D8D8D8; border-radius: 10px;
+}
+
+/* class */
+.hidden { display: none; }
